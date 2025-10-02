@@ -1,16 +1,39 @@
 version: '3.8'
-services:
-  postgres:
-    image: postgres:15-alpine
-    container_name: skin_lesion_db
-    environment:
-      POSTGRES_DB: skin_lesion_db
-      POSTGRES_USER: medical_user
-      POSTGRES_PASSWORD: secure_password_123
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
 
-volumes:
-  postgres_data:
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: skin-lesion-classifier
+    image: skin-lesion-classifier:latest
+    
+    ports:
+      - "8501:8501"
+    
+    volumes:
+      - ./model:/app/model:ro
+    
+    environment:
+      - STREAMLIT_SERVER_PORT=8501
+      - STREAMLIT_SERVER_ADDRESS=0.0.0.0
+      - STREAMLIT_SERVER_HEADLESS=true
+      - STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
+    
+    restart: unless-stopped
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '1.0'
+          memory: 2G
